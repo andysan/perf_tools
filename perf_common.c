@@ -82,7 +82,7 @@ ctr_attach(ctr_t *ctr, pid_t pid, int cpu, int group_fd, int flags)
     assert(ctr->fd == -1);
 
     ctr->attr.size = PERF_ATTR_SIZE_VER0;
-    ctr->fd = sys_perf_event_open(&ctr->attr, pid, cpu, group_fd, flags);
+    ctr->fd = compat_sys_perf_event_open(&ctr->attr, pid, cpu, group_fd, flags);
 
     if (ctr->fd == -1) {
 	perror("Failed to attach performance counter");
