@@ -286,9 +286,9 @@ do_start()
 {
     int sfd;
 
-    for (ctr_t *cur = perf_ctrs.head; cur; cur = cur->next) {
-	cur->attr.disabled = 1;
-	cur->attr.enable_on_exec = 1;
+    if (perf_ctrs.head) {
+	perf_ctrs.head->attr.disabled = 1;
+	perf_ctrs.head->attr.enable_on_exec = 1;
     }
 
     sfd = create_sig_fd();
