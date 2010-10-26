@@ -99,6 +99,7 @@ struct perf_event_attr perf_base_attr = {
     .enable_on_exec = 0,
     .task = 0,
     .watermark = 0,
+    .precise_ip = 0,
 };
 
 ctr_list_t perf_ctrs = { NULL, NULL };
@@ -108,6 +109,7 @@ enum {
     KEY_EXCLUSIVE = -2,
     KEY_SAMPLE_PERIOD = -3,
     KEY_SAMPLE_FREQ = -4,
+    KEY_PRECISE_IP = -5,
 };
 
 static struct argp_option options[] = {
@@ -122,6 +124,7 @@ static struct argp_option options[] = {
       "Use raw performance event EVENT (creates a new event)", 0 },
     { "sample-period", KEY_SAMPLE_PERIOD, "N", 0, "Use sample period N", 2 },
     { "sample-freq", KEY_SAMPLE_FREQ, "N", 0, "Use sample frequency N", 2 },
+    { "precise-ip", KEY_PRECISE_IP, "N", 0, "Set the precise_ip field to N", 2 },
     { 0 }
 };
 
@@ -368,7 +371,12 @@ parse_opt(int key, char *arg, struct argp_state *state)
 	    perf_argp_parse_long("sample freq", arg, state);
 	current_attr->freq = 1;
 	break;
-     
+
+    case KEY_PRECISE_IP:
+	current_attr->precise_ip =
+	    perf_argp_parse_long("precise ip", arg, state);
+	break;
+
     case ARGP_KEY_END:
 	if (!perf_ctrs.head) {
 	    fprintf(stderr, "No performance counters specified.\n");
