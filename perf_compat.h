@@ -54,11 +54,20 @@
 
 static inline int
 compat_sys_perf_event_open(struct perf_event_attr *attr,
-			   pid_t pid, int cpu, int group_fd,
-			   unsigned long flags)
+                           pid_t pid, int cpu, int group_fd,
+                           unsigned long flags)
 {
     return syscall(__NR_perf_event_open, attr, pid, cpu,
-		   group_fd, flags);
+                   group_fd, flags);
 }
 
 #endif
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

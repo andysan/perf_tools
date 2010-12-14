@@ -140,9 +140,9 @@ init_ctr(uint64_t type, uint64_t config)
     ctr->attr.config = config;
 
     if (perf_ctrs.head) {
-	/* These should only be set for the group leader */
-	ctr->attr.pinned = 0;
-	ctr->attr.exclusive = 0;
+        /* These should only be set for the group leader */
+        ctr->attr.pinned = 0;
+        ctr->attr.exclusive = 0;
     }
 
     return ctrs_add(&perf_ctrs, ctr);
@@ -157,10 +157,10 @@ perf_argp_parse_long(const char *name, const char *arg, struct argp_state *state
     errno = 0;
     value = strtol(arg, &endptr, 0);
     if (errno)
-	argp_failure(state, EXIT_FAILURE, errno,
-		     "Invalid %s", name);
+        argp_failure(state, EXIT_FAILURE, errno,
+                     "Invalid %s", name);
     else if (*arg == '\0' || *endptr != '\0')
-	argp_error(state, "Invalid %s: '%s' is not a number.\n", name, arg);
+        argp_error(state, "Invalid %s: '%s' is not a number.\n", name, arg);
 
     return value;
 }
@@ -172,10 +172,10 @@ find_event(const event_name_id_t *list, const char *name, int extended)
     assert(name);
 
     for (const event_name_id_t *cur = list; cur->name; cur++) {
-	const int cur_len = strlen(cur->name);
-	if (!strncmp(cur->name, name, cur_len) &&
-	    (name[cur_len] == '\0' || (extended && name[cur_len] == ':')))
-	    return cur;
+        const int cur_len = strlen(cur->name);
+        if (!strncmp(cur->name, name, cur_len) &&
+            (name[cur_len] == '\0' || (extended && name[cur_len] == ':')))
+            return cur;
     }
 
     return NULL;
@@ -195,9 +195,9 @@ init_sw_ctr(const char *arg, struct argp_state *state)
     const event_name_id_t *event = find_event(sw_events, ctr, 0);
 
     if (event)
-	init_ctr(PERF_TYPE_SOFTWARE, event->id);
+        init_ctr(PERF_TYPE_SOFTWARE, event->id);
     else
-	argp_error(state, "Invalid software event specified.\n");
+        argp_error(state, "Invalid software event specified.\n");
 }
 
 static int
@@ -214,9 +214,9 @@ init_hw_ctr(const char *arg, struct argp_state *state)
     const event_name_id_t *event = find_event(hw_events, ctr, 0);
 
     if (event)
-	init_ctr(PERF_TYPE_HARDWARE, event->id);
+        init_ctr(PERF_TYPE_HARDWARE, event->id);
     else
-	argp_error(state, "Invalid hardware event specified.\n");
+        argp_error(state, "Invalid hardware event specified.\n");
 }
 
 static int
@@ -233,52 +233,52 @@ init_hwc_ctr(const char *arg, struct argp_state *state)
     const event_name_id_t *event = find_event(hwc_events, ctr, 1);
 
     if (event) {
-	const int event_name_len = strlen(event->name);
-	const char *cur = ctr + event_name_len;
-	uint8_t cache_id = (uint8_t)event->id;
-	uint8_t op_id;
-	uint8_t res_id;
+        const int event_name_len = strlen(event->name);
+        const char *cur = ctr + event_name_len;
+        uint8_t cache_id = (uint8_t)event->id;
+        uint8_t op_id;
+        uint8_t res_id;
 
-	if (cur[0] != ':' || cur[1] == '\0')
-	    argp_error(state, "No cache op specified.\n");
+        if (cur[0] != ':' || cur[1] == '\0')
+            argp_error(state, "No cache op specified.\n");
 
-	switch (*(++cur)) {
-	case 'r':
-	    op_id = PERF_COUNT_HW_CACHE_OP_READ;
-	    break;
-	case 'w':
-	    op_id = PERF_COUNT_HW_CACHE_OP_WRITE;
-	    break;
-	case 'p':
-	    op_id = PERF_COUNT_HW_CACHE_OP_PREFETCH;
-	    break;
-	default:
-	    argp_error(state, "Invalid cache op specified.\n");
-	}
+        switch (*(++cur)) {
+        case 'r':
+            op_id = PERF_COUNT_HW_CACHE_OP_READ;
+            break;
+        case 'w':
+            op_id = PERF_COUNT_HW_CACHE_OP_WRITE;
+            break;
+        case 'p':
+            op_id = PERF_COUNT_HW_CACHE_OP_PREFETCH;
+            break;
+        default:
+            argp_error(state, "Invalid cache op specified.\n");
+        }
 
-	cur++;
-	if (cur[0] != ':' || cur[1] == '\0')
-	    argp_error(state, "No cache result specified.\n");
+        cur++;
+        if (cur[0] != ':' || cur[1] == '\0')
+            argp_error(state, "No cache result specified.\n");
 
-	switch (*(++cur)) {
-	case 'a':
-	    res_id = PERF_COUNT_HW_CACHE_RESULT_ACCESS;
-	    break;
-	case 'm':
-	    res_id = PERF_COUNT_HW_CACHE_RESULT_MISS;
-	    break;
-	default:
-	    argp_error(state, "Invalid cache result specified.\n");
-	}
+        switch (*(++cur)) {
+        case 'a':
+            res_id = PERF_COUNT_HW_CACHE_RESULT_ACCESS;
+            break;
+        case 'm':
+            res_id = PERF_COUNT_HW_CACHE_RESULT_MISS;
+            break;
+        default:
+            argp_error(state, "Invalid cache result specified.\n");
+        }
 
-	cur++;
-	if (cur[0] != '\0')
-	    argp_error(state, "Illegal HWC string specified.\n");
+        cur++;
+        if (cur[0] != '\0')
+            argp_error(state, "Illegal HWC string specified.\n");
 
-	init_ctr(PERF_TYPE_HW_CACHE,
-		 (res_id << 16) | (op_id << 8) | cache_id);
+        init_ctr(PERF_TYPE_HW_CACHE,
+                 (res_id << 16) | (op_id << 8) | cache_id);
     } else
-	argp_error(state, "Invalid cache specified.\n");
+        argp_error(state, "Invalid cache specified.\n");
 }
 
 static int
@@ -301,17 +301,17 @@ events_usage()
 {
     printf("Software events:\n");
     for (const event_name_id_t *cur = sw_events; cur->name; cur++)
-	printf("  sw:%s\n", cur->name);
+        printf("  sw:%s\n", cur->name);
     printf("\n");
     printf("Hardware events:\n");
     for (const event_name_id_t *cur = hw_events; cur->name; cur++)
-	printf("  hw:%s\n", cur->name);
+        printf("  hw:%s\n", cur->name);
     printf("\n");
     printf("Hardware cache events:\n");
     printf("  Specified on the form 'hwc:cache:operation:result'.\n");
     printf("  Available cache levels:\n");
     for (const event_name_id_t *cur = hwc_events; cur->name; cur++)
-	printf("    %s\n", cur->name);
+        printf("    %s\n", cur->name);
     printf("  Available operations:\n");
     printf("    r - Read\n");
     printf("    w - Write\n");
@@ -322,7 +322,7 @@ events_usage()
     printf("\n");
     printf("Raw events:\n");
     printf("  Raw events are specified on the form 'raw:NUM' where NUM "
-	   "is the event number.\n");
+           "is the event number.\n");
 
     exit(EXIT_SUCCESS);
 }
@@ -331,62 +331,62 @@ static error_t
 parse_opt(int key, char *arg, struct argp_state *state)
 {
     struct perf_event_attr *current_attr =
-	perf_ctrs.tail ? &perf_ctrs.tail->attr : &perf_base_attr;
+        perf_ctrs.tail ? &perf_ctrs.tail->attr : &perf_base_attr;
 
     switch (key)
     {
     case 'e':
-	if (!strcmp("help", arg))
-	    events_usage();
-	else if (is_sw_event(arg))
-	    init_sw_ctr(arg, state);
-	else if (is_hw_event(arg))
-	    init_hw_ctr(arg, state);
-	else if (is_hwc_event(arg))
-	    init_hwc_ctr(arg, state);
-	else if (is_raw_event(arg))
-	    init_raw_ctr(arg, state);
-	else
-	    argp_error(state,
-		       "Invalid event specified, use 'help' to list "
-		       "available events.\n");
-	break;
+        if (!strcmp("help", arg))
+            events_usage();
+        else if (is_sw_event(arg))
+            init_sw_ctr(arg, state);
+        else if (is_hw_event(arg))
+            init_hw_ctr(arg, state);
+        else if (is_hwc_event(arg))
+            init_hwc_ctr(arg, state);
+        else if (is_raw_event(arg))
+            init_raw_ctr(arg, state);
+        else
+            argp_error(state,
+                       "Invalid event specified, use 'help' to list "
+                       "available events.\n");
+        break;
 
     case KEY_PINNED:
-	perf_base_attr.pinned = 1;
-	break;
+        perf_base_attr.pinned = 1;
+        break;
 
     case KEY_EXCLUSIVE:
-	perf_base_attr.exclusive = 1;
-	break;
+        perf_base_attr.exclusive = 1;
+        break;
 
     case KEY_SAMPLE_PERIOD:
-	current_attr->sample_period =
-	    perf_argp_parse_long("sample period", arg, state);
-	current_attr->freq = 0;
-	break;
+        current_attr->sample_period =
+            perf_argp_parse_long("sample period", arg, state);
+        current_attr->freq = 0;
+        break;
 
     case KEY_SAMPLE_FREQ:
-	current_attr->sample_freq =
-	    perf_argp_parse_long("sample freq", arg, state);
-	current_attr->freq = 1;
-	break;
+        current_attr->sample_freq =
+            perf_argp_parse_long("sample freq", arg, state);
+        current_attr->freq = 1;
+        break;
 
     case KEY_PRECISE_IP:
-	current_attr->precise_ip =
-	    perf_argp_parse_long("precise ip", arg, state);
-	break;
+        current_attr->precise_ip =
+            perf_argp_parse_long("precise ip", arg, state);
+        break;
 
     case ARGP_KEY_END:
-	if (!perf_ctrs.head) {
-	    fprintf(stderr, "No performance counters specified.\n");
-	    argp_usage(state);
-	}
+        if (!perf_ctrs.head) {
+            fprintf(stderr, "No performance counters specified.\n");
+            argp_usage(state);
+        }
 
-	break;
+        break;
      
     default:
-	return ARGP_ERR_UNKNOWN;
+        return ARGP_ERR_UNKNOWN;
     }
     return 0;
 }
@@ -395,3 +395,12 @@ struct argp perf_argp = {
     .options = options,
     .parser = parse_opt,
 };
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

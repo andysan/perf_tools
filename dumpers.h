@@ -56,7 +56,7 @@ typedef struct {
 
 typedef struct {
     void (*init)(const ctr_list_t *ctrs,
-		 const dumper_config_t *conf);
+                 const dumper_config_t *conf);
     event_dumper_t event_unknown;
     event_dumper_t events[];
 } dumper_t;
@@ -64,18 +64,18 @@ typedef struct {
 extern dumper_t dumper_dump;
 extern dumper_t dumper_csv;
 
-#define READ_TYPE_IMPL(T)						\
-    static inline T read_ ## T(void **data, uint16_t *size) {		\
-	assert(*size >= sizeof(T));					\
-	*size -= sizeof(T);						\
-	return *(*(T **)data)++;					\
+#define READ_TYPE_IMPL(T)                                               \
+    static inline T read_ ## T(void **data, uint16_t *size) {           \
+        assert(*size >= sizeof(T));                                     \
+        *size -= sizeof(T);                                             \
+        return *(*(T **)data)++;                                        \
     }
 
-#define SKIP_TYPE_IMPL(T)						\
-    static inline void skip_ ## T(void **data, uint16_t *size) {	\
-	assert(*size >= sizeof(T));					\
-	*size -= sizeof(T);						\
-	(*(T **)data)++;						\
+#define SKIP_TYPE_IMPL(T)                                               \
+    static inline void skip_ ## T(void **data, uint16_t *size) {        \
+        assert(*size >= sizeof(T));                                     \
+        *size -= sizeof(T);                                             \
+        (*(T **)data)++;                                                \
     }
 
 READ_TYPE_IMPL(uint64_t)
@@ -85,3 +85,12 @@ SKIP_TYPE_IMPL(uint64_t)
 SKIP_TYPE_IMPL(uint32_t)
 
 #endif
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

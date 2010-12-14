@@ -58,8 +58,8 @@ static event_dumper_t *
 find_dumper(uint32_t type)
 {
     for (event_dumper_t *ed = dumper->events; ed->f; ed++)
-	if (ed->type == type)
-	    return ed;
+        if (ed->type == type)
+            return ed;
 
     return &dumper->event_unknown;
 }
@@ -72,11 +72,11 @@ dump_event()
     char data[0xFFFF];
 
     if (fread(&hdr, sizeof(hdr), 1, input) != 1)
-	return -1;
+        return -1;
 
     assert(hdr.size >= sizeof(hdr));
     if (fread(data, hdr.size - sizeof(hdr), 1, input) != 1)
-	return -1;
+        return -1;
 
     dumper = find_dumper(hdr.type);
     dumper->f(data, hdr.type, hdr.misc, hdr.size - sizeof(hdr));
@@ -88,11 +88,11 @@ static void
 dump_events()
 {
     while (dump_event() != -1)
-	;
+        ;
 
     if (ferror(input)) {
-	perror("Failed to read events");
-	exit(EXIT_FAILURE);
+        perror("Failed to read events");
+        exit(EXIT_FAILURE);
     }
 }
 
@@ -122,51 +122,51 @@ parse_opt (int key, char *arg, struct argp_state *state)
     switch (key)
     {
     case 'o':
-	output_name = arg;
-	break;
+        output_name = arg;
+        break;
 
     case 'f':
-	if (!strcmp("dump", arg))
-	    dumper = &dumper_dump;
-	else if (!strcmp("csv", arg))
-	    dumper = &dumper_csv;
-	else
-	    argp_error(state, "Illegal output format\n");
-	break;
+        if (!strcmp("dump", arg))
+            dumper = &dumper_dump;
+        else if (!strcmp("csv", arg))
+            dumper = &dumper_csv;
+        else
+            argp_error(state, "Illegal output format\n");
+        break;
 
     case 'd':
-	conf.delta = 1;
-	break;
+        conf.delta = 1;
+        break;
 
     case ARGP_KEY_ARG:
-	if (state->arg_num == 0)
-	    input_name = arg;
-	else
-	    argp_error(state, "Illegal argument\n");
-	    
-	break;
+        if (state->arg_num == 0)
+            input_name = arg;
+        else
+            argp_error(state, "Illegal argument\n");
+            
+        break;
 
     case ARGP_KEY_END:
-	if (input_name) {
-	    input = fopen(input_name, "r");
-	    if (!input)
-		argp_failure(state, EXIT_FAILURE, errno,
-			     "Failed to open input file");
-	} else
-	    input = stdin;
+        if (input_name) {
+            input = fopen(input_name, "r");
+            if (!input)
+                argp_failure(state, EXIT_FAILURE, errno,
+                             "Failed to open input file");
+        } else
+            input = stdin;
 
-	if (output_name) {
-	    conf.output = fopen(output_name, "w");
-	    if (!conf.output)
-		argp_failure(state, EXIT_FAILURE, errno,
-			     "Failed to open output file");
-	} else
-	    conf.output = stdout;
+        if (output_name) {
+            conf.output = fopen(output_name, "w");
+            if (!conf.output)
+                argp_failure(state, EXIT_FAILURE, errno,
+                             "Failed to open output file");
+        } else
+            conf.output = stdout;
 
-	break;
+        break;
      
     default:
-	return ARGP_ERR_UNKNOWN;
+        return ARGP_ERR_UNKNOWN;
     }
     return 0;
 }
@@ -177,9 +177,9 @@ int
 main(int argc, char **argv)
 {
     argp_parse (&argp, argc, argv,
-		ARGP_IN_ORDER,
-		0,
-		NULL);
+                ARGP_IN_ORDER,
+                0,
+                NULL);
 
 
     EXPECT(ctrs_read_header(&ctrs, input) == 1);
@@ -190,3 +190,12 @@ main(int argc, char **argv)
 
     exit(EXIT_SUCCESS);
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

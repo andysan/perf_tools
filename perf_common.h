@@ -113,7 +113,7 @@ int ctrs_attach(ctr_list_t *list, pid_t pid, int cpu, int flags);
  * @return >= 0 on success, -1 on error
  */
 pid_t ctrs_execvp(ctr_list_t *list, int cpu, int flags,
-		  const char *file, char *const argv[]);
+                  const char *file, char *const argv[]);
 
 /**
  * Execute a process and attach the counter list to the child process.
@@ -135,7 +135,16 @@ pid_t ctrs_execvp(ctr_list_t *list, int cpu, int flags,
  * @return >= 0 on success, -1 on error
  */
 pid_t ctrs_execvp_cb(ctr_list_t *list, int cpu, int flags,
-		     void (*child_callback)(void *data), void *callback_data,
-		     const char *file, char *const argv[]);
+                     void (*child_callback)(void *data), void *callback_data,
+                     const char *file, char *const argv[]);
 
 #endif
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

@@ -38,3 +38,12 @@ void send_fd(int sockfd, int fd);
 int recv_fd(int sockfd);
 
 #endif
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

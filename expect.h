@@ -36,23 +36,32 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define EXPECT(expr)					\
-    do {						\
-        if (!(expr)) {					\
-	    fprintf(stderr, "%s:%i: %s\n",		\
-		    __FILE__, __LINE__, # expr);	\
-	    abort();					\
-        }						\
+#define EXPECT(expr)                                    \
+    do {                                                \
+        if (!(expr)) {                                  \
+            fprintf(stderr, "%s:%i: %s\n",              \
+                    __FILE__, __LINE__, # expr);        \
+            abort();                                    \
+        }                                               \
     } while (0)
 
-#define EXPECT_ERRNO(expr)						\
-    do {								\
-        if (!(expr)) {							\
-	    fprintf(stderr, "%s:%i: %s\n  %s\n",			\
-		    __FILE__, __LINE__, # expr, strerror(errno));	\
-	    abort();							\
-        }								\
+#define EXPECT_ERRNO(expr)                                              \
+    do {                                                                \
+        if (!(expr)) {                                                  \
+            fprintf(stderr, "%s:%i: %s\n  %s\n",                        \
+                    __FILE__, __LINE__, # expr, strerror(errno));       \
+            abort();                                                    \
+        }                                                               \
     } while (0)
 
 
 #endif
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

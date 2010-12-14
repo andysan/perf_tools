@@ -62,12 +62,12 @@ ctr_create(const struct perf_event_attr *base_attr)
     ctr_t *ctr;
     ctr = malloc(sizeof(ctr_t));
     if (!ctr)
-	return NULL;
+        return NULL;
 
     if (!base_attr)
-	memset(ctr, 0, sizeof(ctr_t));
+        memset(ctr, 0, sizeof(ctr_t));
     else
-	ctr->attr = *base_attr;
+        ctr->attr = *base_attr;
 
     ctr->fd = -1;
     ctr->next = NULL;
@@ -85,8 +85,8 @@ ctr_attach(ctr_t *ctr, pid_t pid, int cpu, int group_fd, int flags)
     ctr->fd = compat_sys_perf_event_open(&ctr->attr, pid, cpu, group_fd, flags);
 
     if (ctr->fd == -1) {
-	perror("Failed to attach performance counter");
-	return -1;
+        perror("Failed to attach performance counter");
+        return -1;
     }
 
     return ctr->fd;
@@ -96,15 +96,15 @@ int
 ctrs_attach(ctr_list_t *list, pid_t pid, int cpu, int flags)
 {
     for (ctr_t *cur = list->head; cur; cur = cur->next) {
-	/* Use the first counter as the group_fd */
-	ctr_attach(cur, pid, cpu,
-		   cur != list->head ? list->head->fd : -1,
-		   flags);
+        /* Use the first counter as the group_fd */
+        ctr_attach(cur, pid, cpu,
+                   cur != list->head ? list->head->fd : -1,
+                   flags);
 
-	if (cur->fd == -1) {
-	    ctrs_close(list);
-	    return -1;
-	}
+        if (cur->fd == -1) {
+            ctrs_close(list);
+            return -1;
+        }
     }
 
     return 0;
@@ -114,10 +114,10 @@ void
 ctrs_close(ctr_list_t *list)
 {
     for (ctr_t *cur = list->head; cur; cur = cur->next) {
-	if (cur->fd != -1) {
-	    close(cur->fd);
-	    cur->fd = -1;
-	}
+        if (cur->fd != -1) {
+            close(cur->fd);
+            cur->fd = -1;
+        }
     }
 }
 
@@ -127,12 +127,12 @@ ctrs_add(ctr_list_t *list, ctr_t *ctr)
     ctr->next = NULL;
 
     if (list->tail) {
-	assert(list->head);
-	list->tail->next = ctr;
-	list->tail = ctr;
+        assert(list->head);
+        list->tail->next = ctr;
+        list->tail = ctr;
     } else {
-	list->head = ctr;
-	list->tail = ctr;
+        list->head = ctr;
+        list->tail = ctr;
     }
 
     return ctr;
@@ -143,7 +143,7 @@ ctrs_len(ctr_list_t *list)
 {
     int count = 0;
     for (ctr_t *cur = list->head; cur; cur = cur->next)
-	count++;
+        count++;
     return count;
 }
 
@@ -154,7 +154,7 @@ ctrs_send_fds(ctr_list_t *list, int sockfd)
 {
     /* XXX: Error checking */
     for (ctr_t *cur = list->head; cur; cur = cur->next)
-	send_fd(sockfd, cur->fd);
+        send_fd(sockfd, cur->fd);
 }
 
 static void
@@ -162,7 +162,7 @@ ctrs_recv_fds(ctr_list_t *list, int sockfd)
 {
     /* XXX: Error checking */
     for (ctr_t *cur = list->head; cur; cur = cur->next)
-	cur->fd = recv_fd(sockfd);
+        cur->fd = recv_fd(sockfd);
 }
 
 #else
@@ -183,7 +183,7 @@ static void
 sync_send_simple(int fd, sync_type_t type)
 {
     sync_msg_t msg = {
-	.type = type,
+        .type = type,
     };
 
     sync_send(fd, &msg);
@@ -196,8 +196,8 @@ sync_wait_simple(int fd, sync_type_t type)
 
     sync_wait(fd, &msg);
     if (msg.type == SYNC_ABORT) {
-	fprintf(stderr, "Abort signalled while doing child synchronization.\n");
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Abort signalled while doing child synchronization.\n");
+        exit(EXIT_FAILURE);
     }
     EXPECT(msg.type == type);
 }
@@ -206,68 +206,77 @@ sync_wait_simple(int fd, sync_type_t type)
 
 pid_t
 ctrs_execvp_cb(ctr_list_t *list, int cpu, int flags,
-	       void (*child_callback)(void *data), void *callback_data,
-	       const char *file, char *const argv[])
+               void (*child_callback)(void *data), void *callback_data,
+               const char *file, char *const argv[])
 {
     pid_t pid;
     int fds[2];
 
     if (socketpair(AF_UNIX, SOCK_SEQPACKET, 0, fds)) {
-	perror("Failed to setup socket pair");
-	return -1;
+        perror("Failed to setup socket pair");
+        return -1;
     }
 
     pid = fork();
     if (pid == -1) {
-	perror("fork failed");
-	return -1;
+        perror("fork failed");
+        return -1;
     }
 
     if (pid == 0) {
-	close(fds[0]);
+        close(fds[0]);
 
-	if (child_callback)
-	    child_callback(callback_data);
+        if (child_callback)
+            child_callback(callback_data);
 
 #ifdef CTRS_SEND_FDS
-	if (ctrs_attach(list, 0 /* pid */, cpu, flags) == -1)
-	    exit(EXIT_FAILURE);
+        if (ctrs_attach(list, 0 /* pid */, cpu, flags) == -1)
+            exit(EXIT_FAILURE);
 
-	ctrs_send_fds(list, fds[1]);
+        ctrs_send_fds(list, fds[1]);
 #else
-	sync_send_simple(fds[1], SYNC_WAITING);
-	sync_wait_simple(fds[1], SYNC_GO);
+        sync_send_simple(fds[1], SYNC_WAITING);
+        sync_wait_simple(fds[1], SYNC_GO);
 #endif
 
-	close(fds[1]);
+        close(fds[1]);
 
-	execvp(file, argv);
-	fprintf(stderr, "%s: %s", file, strerror(errno));
-	exit(EXIT_FAILURE);
+        execvp(file, argv);
+        fprintf(stderr, "%s: %s", file, strerror(errno));
+        exit(EXIT_FAILURE);
     } else {
-	close(fds[1]);
+        close(fds[1]);
 #ifdef CTRS_SEND_FDS
-	ctrs_recv_fds(list, fds[0]);
+        ctrs_recv_fds(list, fds[0]);
 #else
-	sync_wait_simple(fds[0], SYNC_WAITING);
+        sync_wait_simple(fds[0], SYNC_WAITING);
 
-	if (ctrs_attach(list, pid, cpu, flags) == -1) {
-	    sync_send_simple(fds[0], SYNC_ABORT);
-	    exit(EXIT_FAILURE);
-	}
+        if (ctrs_attach(list, pid, cpu, flags) == -1) {
+            sync_send_simple(fds[0], SYNC_ABORT);
+            exit(EXIT_FAILURE);
+        }
 
-	sync_send_simple(fds[0], SYNC_GO);
+        sync_send_simple(fds[0], SYNC_GO);
 #endif
-	close(fds[0]);
+        close(fds[0]);
 
-	return pid;
+        return pid;
     }
 }
 
 pid_t
 ctrs_execvp(ctr_list_t *list,
-	    int cpu, int flags,
-	    const char *file, char *const argv[])
+            int cpu, int flags,
+            const char *file, char *const argv[])
 {
     return ctrs_execvp_cb(list, cpu, flags, NULL, NULL, file, argv);
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

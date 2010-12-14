@@ -40,6 +40,15 @@ extern ctr_list_t perf_ctrs;
 extern struct argp perf_argp;
 
 extern long perf_argp_parse_long(const char *name, const char *arg,
-				 struct argp_state *state);
+                                 struct argp_state *state);
 
 #endif
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

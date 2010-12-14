@@ -42,21 +42,21 @@ read_all(int fd, void *buf, size_t size)
     char *_buf = (char *)buf;
     size_t _size = size;
     do {
-	ssize_t ret;
-	ret = read(fd, _buf, _size);
-	switch (ret) {
-	case -1:
-	    EXPECT_ERRNO(errno == EAGAIN);
-	    break;
+        ssize_t ret;
+        ret = read(fd, _buf, _size);
+        switch (ret) {
+        case -1:
+            EXPECT_ERRNO(errno == EAGAIN);
+            break;
 
-	case 0:
-	    return 0;
-	    
-	default:
-	    _size -= ret;
-	    _buf += ret;
-	    break;
-	}
+        case 0:
+            return 0;
+            
+        default:
+            _size -= ret;
+            _buf += ret;
+            break;
+        }
     } while(_size);
 
     return size;
@@ -68,14 +68,14 @@ write_all(int fd, const void *buf, size_t size)
     char *_buf = (char *)buf;
     size_t _size = size;
     do {
-	ssize_t ret;
-	ret = write(fd, _buf, _size);
-	if (ret == -1)
-	    EXPECT_ERRNO(errno == EAGAIN);
-	else {
-	    _size -= ret;
-	    _buf += ret;
-	}
+        ssize_t ret;
+        ret = write(fd, _buf, _size);
+        if (ret == -1)
+            EXPECT_ERRNO(errno == EAGAIN);
+        else {
+            _size -= ret;
+            _buf += ret;
+        }
     } while(_size);
 
     return size;
@@ -86,8 +86,8 @@ send_fd(int sockfd, int fd)
 {
     char buf[CMSG_SPACE(sizeof(int))];
     struct msghdr msg = {
-	.msg_control = buf,
-	.msg_controllen = sizeof(buf)
+        .msg_control = buf,
+        .msg_controllen = sizeof(buf)
     };
     struct cmsghdr *cmsg;
 
@@ -108,8 +108,8 @@ recv_fd(int sockfd)
 {
     char buf[CMSG_SPACE(sizeof(int))];
     struct msghdr msg = {
-	.msg_control = buf,
-	.msg_controllen = sizeof(buf)
+        .msg_control = buf,
+        .msg_controllen = sizeof(buf)
     };
     struct cmsghdr *cmsg;
     
@@ -120,10 +120,19 @@ recv_fd(int sockfd)
 
     cmsg = CMSG_FIRSTHDR(&msg);
     if (!cmsg) {
-	fprintf(stderr, "Failed to receive fds, aborting.\n");
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Failed to receive fds, aborting.\n");
+        exit(EXIT_FAILURE);
     }
 
     assert(cmsg->cmsg_type == SCM_RIGHTS);
     return *(int *)CMSG_DATA(cmsg);
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

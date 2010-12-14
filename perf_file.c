@@ -45,7 +45,7 @@ ctrs_write_header(ctr_list_t *ctrs, FILE *file)
     EXPECT(fwrite(MAGIC, sizeof(MAGIC), 1, file) == 1);
     EXPECT(fwrite(&no_counters, sizeof(no_counters), 1, file) == 1);
     for (ctr_t *c = ctrs->head; c; c = c->next)
-	EXPECT(fwrite(&c->attr, sizeof(c->attr), 1, file) == 1);
+        EXPECT(fwrite(&c->attr, sizeof(c->attr), 1, file) == 1);
 
     return 1;
 }
@@ -68,13 +68,22 @@ ctrs_read_header(ctr_list_t *ctrs, FILE *file)
     EXPECT(fread(&no_counters, sizeof(no_counters), 1, file) == 1);
 
     for (int i = 0; i < no_counters; i++) {
-	ctr_t *c = malloc(sizeof(ctr_t));
-	c->fd = -1;
-	c->next = NULL;
+        ctr_t *c = malloc(sizeof(ctr_t));
+        c->fd = -1;
+        c->next = NULL;
 
-	EXPECT(fread(&c->attr, sizeof(c->attr), 1, file) == 1);
-	ctrs_add(ctrs, c);
+        EXPECT(fread(&c->attr, sizeof(c->attr), 1, file) == 1);
+        ctrs_add(ctrs, c);
     }
 
     return 1;
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

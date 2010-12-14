@@ -65,29 +65,29 @@ print_event(FILE *out, const struct perf_event_attr *attr, uint64_t value)
 {
     switch (attr->type) {
     case PERF_TYPE_HARDWARE:
-	fprintf(out, "hw %" PRIu64 ": %" PRIu64 "\n",
-		(uint64_t)attr->config, value);
-	break;
+        fprintf(out, "hw %" PRIu64 ": %" PRIu64 "\n",
+                (uint64_t)attr->config, value);
+        break;
 
     case PERF_TYPE_SOFTWARE:
-	fprintf(out, "sw %" PRIu64 ": %" PRIu64 "\n",
-		(uint64_t)attr->config, value);
-	break;
+        fprintf(out, "sw %" PRIu64 ": %" PRIu64 "\n",
+                (uint64_t)attr->config, value);
+        break;
 
     case PERF_TYPE_HW_CACHE:
-	fprintf(out, "hwc 0x%" PRIx64 ": %" PRIu64 "\n",
-		(uint64_t)attr->config, value);
-	break;
+        fprintf(out, "hwc 0x%" PRIx64 ": %" PRIu64 "\n",
+                (uint64_t)attr->config, value);
+        break;
 
     case PERF_TYPE_RAW:
-	fprintf(out, "raw 0x%" PRIx64 ": %" PRIu64 "\n",
-		(uint64_t)attr->config, value);
-	break;
+        fprintf(out, "raw 0x%" PRIx64 ": %" PRIu64 "\n",
+                (uint64_t)attr->config, value);
+        break;
 
     default:
-	fprintf(out, "unknown event (%" PRIu32 ":%" PRIu64 "): %" PRIu64 "\n",
-		(uint32_t)attr->type, (uint64_t)attr->config, value);
-	break;
+        fprintf(out, "unknown event (%" PRIu32 ":%" PRIu64 "): %" PRIu64 "\n",
+                (uint32_t)attr->type, (uint64_t)attr->config, value);
+        break;
     }
 }
 
@@ -96,12 +96,12 @@ print_counters(FILE *out)
 {
     int no_counters, data_size, ret;
     struct read_format {
-	uint64_t nr;
-	uint64_t time_enabled;
-	uint64_t time_running;
-	struct ctr_data {
-	    uint64_t val;
-	} ctr[];
+        uint64_t nr;
+        uint64_t time_enabled;
+        uint64_t time_running;
+        struct ctr_data {
+            uint64_t val;
+        } ctr[];
     } *data;
 
     no_counters = ctrs_len(&perf_ctrs);
@@ -111,21 +111,21 @@ print_counters(FILE *out)
 
     EXPECT((ret = read(perf_ctrs.head->fd, data, data_size)) != -1);
     if (ret == 0) {
-	fprintf(stderr, "Got EOF while reading counter\n");
-	exit(EXIT_FAILURE);
+        fprintf(stderr, "Got EOF while reading counter\n");
+        exit(EXIT_FAILURE);
     } else if (ret != data_size)
-	fprintf(stderr,
-		"Warning: Got short read. Expected %i bytes, "
-		"but got %i bytes.\n",
-		data_size, ret);
+        fprintf(stderr,
+                "Warning: Got short read. Expected %i bytes, "
+                "but got %i bytes.\n",
+                data_size, ret);
 
     int i = 0;
     const double scaling_factor = scale ? data->time_enabled / data->time_running : 1.0;
     for (ctr_t *cur = perf_ctrs.head; cur; cur = cur->next) {
-	assert(i < data->nr);
-	struct ctr_data *ctr = &data->ctr[i++];
+        assert(i < data->nr);
+        struct ctr_data *ctr = &data->ctr[i++];
 
-	print_event(out, &cur->attr, (uint64_t)(ctr->val * scaling_factor));
+        print_event(out, &cur->attr, (uint64_t)(ctr->val * scaling_factor));
     }
 
     free(data);
@@ -161,30 +161,30 @@ do_attach()
 
     printf("Attaching to PID %i...\n", attach_pid);
     if (ctrs_attach(&perf_ctrs, attach_pid, monitor_cpu, 0 /* flags */) == -1)
-	exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE);
 
     while (!done) {
-	struct pollfd pfd[] = {
-	    { sfd, POLLIN, 0 }
-	};
-	EXPECT_ERRNO(poll(pfd, sizeof(pfd) / sizeof(*pfd), -1) != -1);
+        struct pollfd pfd[] = {
+            { sfd, POLLIN, 0 }
+        };
+        EXPECT_ERRNO(poll(pfd, sizeof(pfd) / sizeof(*pfd), -1) != -1);
 
-	if (pfd[0].revents & POLLIN) {
-	    struct signalfd_siginfo fdsi;
-	    EXPECT(read(sfd, &fdsi, sizeof(fdsi)) == sizeof(fdsi));
-	    
-	    switch (fdsi.ssi_signo) {
-	    case SIGINT:
-		done = 1;
-		break;
-	    case SIGUSR1:
-		print_counters(stdout);
-		break;
-	    default:
-		/* Ignore other signals */
-		break;
-	    }
-	}
+        if (pfd[0].revents & POLLIN) {
+            struct signalfd_siginfo fdsi;
+            EXPECT(read(sfd, &fdsi, sizeof(fdsi)) == sizeof(fdsi));
+            
+            switch (fdsi.ssi_signo) {
+            case SIGINT:
+                done = 1;
+                break;
+            case SIGUSR1:
+                print_counters(stdout);
+                break;
+            default:
+                /* Ignore other signals */
+                break;
+            }
+        }
     }
 
     print_counters(stdout);
@@ -194,10 +194,10 @@ static void
 setup_child(void *data)
 {
     if (force_cpu != -1) {
-	cpu_set_t cpu_set;
-	CPU_ZERO(&cpu_set);
-	CPU_SET(force_cpu, &cpu_set);
-	EXPECT_ERRNO(sched_setaffinity(0, sizeof(cpu_set_t), &cpu_set) != -1);
+        cpu_set_t cpu_set;
+        CPU_ZERO(&cpu_set);
+        CPU_SET(force_cpu, &cpu_set);
+        EXPECT_ERRNO(sched_setaffinity(0, sizeof(cpu_set_t), &cpu_set) != -1);
     }
 }
 
@@ -212,53 +212,53 @@ do_start()
     sfd = create_signal_fd();
 
     if (perf_ctrs.head) {
-	perf_ctrs.head->attr.disabled = 1;
-	perf_ctrs.head->attr.enable_on_exec = 1;
+        perf_ctrs.head->attr.disabled = 1;
+        perf_ctrs.head->attr.enable_on_exec = 1;
     }
 
     pid = ctrs_execvp_cb(&perf_ctrs, monitor_cpu /* cpu */, 0 /* flags */,
-			 &setup_child, NULL,
-			 exec_argv[0], exec_argv);
+                         &setup_child, NULL,
+                         exec_argv[0], exec_argv);
     EXPECT(pid != -1);
 
     while (!done) {
-	struct pollfd pfd[] = {
-	    { sfd, POLLIN, 0 }
-	};
-	EXPECT_ERRNO(poll(pfd, sizeof(pfd) / sizeof(*pfd), -1) != -1);
+        struct pollfd pfd[] = {
+            { sfd, POLLIN, 0 }
+        };
+        EXPECT_ERRNO(poll(pfd, sizeof(pfd) / sizeof(*pfd), -1) != -1);
 
-	if (pfd[0].revents & POLLIN) {
-	    struct signalfd_siginfo fdsi;
-	    EXPECT(read(sfd, &fdsi, sizeof(fdsi)) == sizeof(fdsi));
-	    
-	    switch (fdsi.ssi_signo) {
-	    case SIGINT:
-		/* Try to terminate the child, if this succeeds, we'll
-		 * get a SIGCHLD and terminate ourselves. */
-		fprintf(stderr, "Sending SIGTERM to child.\n");
-		kill(pid, SIGTERM);
-		break;
-	    case SIGUSR1:
-		print_counters(stderr);
-		break;
-	    case SIGCHLD: {
-		int status;
-		print_counters(stderr);
+        if (pfd[0].revents & POLLIN) {
+            struct signalfd_siginfo fdsi;
+            EXPECT(read(sfd, &fdsi, sizeof(fdsi)) == sizeof(fdsi));
+            
+            switch (fdsi.ssi_signo) {
+            case SIGINT:
+                /* Try to terminate the child, if this succeeds, we'll
+                 * get a SIGCHLD and terminate ourselves. */
+                fprintf(stderr, "Sending SIGTERM to child.\n");
+                kill(pid, SIGTERM);
+                break;
+            case SIGUSR1:
+                print_counters(stderr);
+                break;
+            case SIGCHLD: {
+                int status;
+                print_counters(stderr);
 
-		EXPECT(waitpid(pid, &status, 0) != -1);
+                EXPECT(waitpid(pid, &status, 0) != -1);
 
-		if (!WIFEXITED(status)) {
-		    fprintf(stderr, "Child processes did not exit normally\n");
-		    exit(EXIT_FAILURE);
-		}
+                if (!WIFEXITED(status)) {
+                    fprintf(stderr, "Child processes did not exit normally\n");
+                    exit(EXIT_FAILURE);
+                }
 
-		done = 1;
-	    } break;
-	    default:
-		/* Ignore other signals */
-		break;
-	    }
-	}
+                done = 1;
+            } break;
+            default:
+                /* Ignore other signals */
+                break;
+            }
+        }
     }
 }
 
@@ -270,41 +270,41 @@ parse_opt (int key, char *arg, struct argp_state *state)
     switch (key)
     {
     case 'p':
-	attach_pid = perf_argp_parse_long("PID", arg, state);
-	break;
+        attach_pid = perf_argp_parse_long("PID", arg, state);
+        break;
 
     case 'c':
-	force_cpu = perf_argp_parse_long("CPU", arg, state);
-	if (force_cpu < 0)
-	    argp_error(state, "CPU number must be positive\n");
-	break;
+        force_cpu = perf_argp_parse_long("CPU", arg, state);
+        if (force_cpu < 0)
+            argp_error(state, "CPU number must be positive\n");
+        break;
 
     case 's':
-	scale = 0;
-	break;
+        scale = 0;
+        break;
 
     case ARGP_KEY_ARG:
-	if (!state->quoted)
-	    argp_error(state, "Invalid argument.");
-	break;
+        if (!state->quoted)
+            argp_error(state, "Invalid argument.");
+        break;
      
     case ARGP_KEY_END:
-	if (state->quoted && state->quoted < state->argc)
-	    exec_argv = &state->argv[state->quoted];
+        if (state->quoted && state->quoted < state->argc)
+            exec_argv = &state->argv[state->quoted];
 
-	if (exec_argv && attach_pid != NO_PID)
-	    argp_error(state,
-		       "Both a command to execute and a PID to attach have\n"
-		       "been specified. Make up your mind!");
-	else if (!exec_argv && attach_pid == NO_PID)
-	    argp_error(state,
-		       "Neither a command to execute, nor a PID to attach have\n"
-		       "been specified. Don't know what to do.");
+        if (exec_argv && attach_pid != NO_PID)
+            argp_error(state,
+                       "Both a command to execute and a PID to attach have\n"
+                       "been specified. Make up your mind!");
+        else if (!exec_argv && attach_pid == NO_PID)
+            argp_error(state,
+                       "Neither a command to execute, nor a PID to attach have\n"
+                       "been specified. Don't know what to do.");
 
-	break;
+        break;
      
     default:
-	return ARGP_ERR_UNKNOWN;
+        return ARGP_ERR_UNKNOWN;
     }
     return 0;
 }
@@ -341,18 +341,27 @@ int
 main(int argc, char **argv)
 {
     perf_base_attr.read_format = 
-	PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING |
-	PERF_FORMAT_GROUP;
+        PERF_FORMAT_TOTAL_TIME_ENABLED | PERF_FORMAT_TOTAL_TIME_RUNNING |
+        PERF_FORMAT_GROUP;
 
     argp_parse (&argp, argc, argv,
-		ARGP_IN_ORDER,
-		0,
-		NULL);
+                ARGP_IN_ORDER,
+                0,
+                NULL);
 
     if (exec_argv)
-	do_start();
+        do_start();
     else
-	do_attach();
+        do_attach();
 
     exit(EXIT_SUCCESS);
 }
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */

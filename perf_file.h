@@ -56,3 +56,12 @@ int ctrs_write_header(ctr_list_t *ctrs, FILE *file);
 int ctrs_read_header(ctr_list_t *ctrs, FILE *file);
 
 #endif
+
+/*
+ * Local Variables:
+ * mode: c
+ * c-basic-offset: 4
+ * indent-tabs-mode: nil
+ * c-file-style: "k&r"
+ * End:
+ */
