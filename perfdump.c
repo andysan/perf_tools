@@ -98,13 +98,19 @@ dump_events()
 
 /*** argument handling ************************************************/
 const char *argp_program_version =
-    "perfdump";
+    "perfdump\n"
+    "\n"
+    "  Copyright (C) 2010-2011, Andreas Sandberg\n"
+    "\n"
+    "  This program is free software; you can redistribute it and/or modify\n"
+    "  it under the terms set out in the COPYING file, which is included\n"
+    "  in the perf_tools source distribution.\n";
 
 const char *argp_program_bug_address =
     "andreas.sandberg@it.uu.se";
 
 static char doc[] =
-    "Test program to produce a human-readable dump of a perf file";
+    "Produce a human-readable dump of a perfrecord output file";
 
 static char args_doc[] = "[FILE]";
 

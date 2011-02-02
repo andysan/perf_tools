@@ -310,7 +310,13 @@ parse_opt (int key, char *arg, struct argp_state *state)
 }
 
 const char *argp_program_version =
-    "rawperf";
+    "rawperf\n"
+    "\n"
+    "  Copyright (C) 2010-2011, Andreas Sandberg\n"
+    "\n"
+    "  This program is free software; you can redistribute it and/or modify\n"
+    "  it under the terms set out in the COPYING file, which is included\n"
+    "  in the perf_tools source distribution.\n";
 
 const char *argp_program_bug_address =
     "andreas.sandberg@it.uu.se";
@@ -333,7 +339,16 @@ static struct argp argp = {
     .options = arg_options,
     .parser = parse_opt,
     .args_doc = "[-- command [arg ...]]",
-    .doc = "Simple interface for monitoring performance counters",
+    .doc = "Simple interface for monitoring performance counters"
+    "\v"
+    "rawperf prints the state of the performance counters when the target "
+    "application exits or is detached. To dump the counters before the exit "
+    "or detach, send SIGUSR1 to the rawperf process.\n"
+    "\n"
+    "SIGINT handling is mode dependent. If rawperf started the target "
+    "application, it is terminated before rawperf terminates. If the "
+    "target was not started, i.e. it was attached, rawperf will simply detach "
+    "from the process and leave it running.",
     .children = arg_children,
 };
 
