@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Andreas Sandberg
+ * Copyright (C) 2010-2011, Andreas Sandberg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
