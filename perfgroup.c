@@ -77,6 +77,7 @@ typedef struct {
     FILE *stderr;
     FILE *stdin;
 
+    char *wd;
     char **argv;
     int argc;
 
@@ -265,6 +266,9 @@ setup_child(void *_p)
      * easily */
     EXPECT_ERRNO(setpgid(0, 0) != -1);
 
+    if (p->wd)
+        EXPECT_ERRNO(chdir(p->wd) != -1);
+
     if (p->stdout)
         fredirect(p->stdout, STDOUT_FILENO);
     if (p->stderr)
@@ -421,7 +425,18 @@ parse_exec_spec(int argc, char *argv[], struct argp_state *state)
         p->cpu = parse_exec_spec_get_cpu(p - processes, state);
         p->pid = 0;
         p->argc = 0;
+
+        if (*argv[0] == '@') {
+            p->wd = argv[0] + 1;
+            --argc;
+            ++argv;
+        }
+
+        if (!argc)
+            argp_error(state, "Target specification lacks binary name");
+
         p->argv = argv;
+
         while (argc) {
             if (!strcmp("--", *argv)) {
                 *argv = NULL;
@@ -528,7 +543,7 @@ static struct argp_child arg_children[] = {
 static struct argp argp = {
     .options = arg_options,
     .parser = parse_opt,
-    .args_doc = "-- command [arg ...] [< input] [-- command [arg ...] [< input]]...",
+    .args_doc = "[-- [@DIR] command [arg ...] [< input]]...",
     .doc = "Run a group of applications and monitor their behavior "
     "using perf event"
     "\v"
