@@ -428,6 +428,19 @@ parse_exec_spec(int argc, char *argv[], struct argp_state *state)
                 ++argv;
                 --argc;
                 break;
+            } else if (!strcmp("<", *argv)) {
+                if (argc <= 1)
+                    argp_error(state, "No input file specified for STDIN "
+                               "redirection.");
+                if (argc > 2 && strcmp("--", argv[2]))
+                    argp_error(state, "Illegal token after STDIN redirection");
+
+                p->stdin = fopen(argv[1], "r");
+                if (!p->stdin)
+                    argp_failure(state, EXIT_FAILURE, errno,
+                                 "Failed to open input file");
+                argv += 2;
+                argc -= 2;
             } else {
                 ++p->argc;
                 ++argv;
@@ -515,7 +528,7 @@ static struct argp_child arg_children[] = {
 static struct argp argp = {
     .options = arg_options,
     .parser = parse_opt,
-    .args_doc = "-- command [arg ...] [-- command [arg ...]]...",
+    .args_doc = "-- command [arg ...] [< input] [-- command [arg ...] [< input]]...",
     .doc = "Run a group of applications and monitor their behavior "
     "using perf event"
     "\v"
