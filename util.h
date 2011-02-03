@@ -37,6 +37,8 @@ size_t write_all(int fd, const void *buf, size_t size);
 void send_fd(int sockfd, int fd);
 int recv_fd(int sockfd);
 
+void fredirect(FILE *new, int fd);
+
 #endif
 
 /*

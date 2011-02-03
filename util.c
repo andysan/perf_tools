@@ -128,6 +128,17 @@ recv_fd(int sockfd)
     return *(int *)CMSG_DATA(cmsg);
 }
 
+void
+fredirect(FILE *new, int fd)
+{
+    int fd_new;
+
+    fd_new = fileno(new);
+    EXPECT_ERRNO(fd_new != -1);
+    EXPECT_ERRNO(dup2(fd_new, fd) != -1);
+}
+
+
 /*
  * Local Variables:
  * mode: c

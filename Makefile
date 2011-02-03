@@ -26,7 +26,7 @@ endif
 CFLAGS=-g -Wall -std=gnu99 $(CONFIG)
 
 
-all: rawperf perfrecord perfdump
+all: rawperf perfrecord perfdump perfgroup
 
 %.o: %.c util.h expect.h perf_common.h perf_file.h dumpers.h perf_argp.h
 
@@ -35,6 +35,8 @@ rawperf: rawperf.o util.o perf_common.o perf_argp.o
 perfrecord: perfrecord.o util.o perf_file.o perf_common.o perf_argp.o
 
 perfdump: perfdump.o perf_file.o perf_common.o util.o dumper_csv.o dumper_dump.o
+
+perfgroup: perfgroup.o util.o perf_common.o perf_argp.o
 
 clean:
 	$(RM) *.o rawperf perfrecord perfdump
