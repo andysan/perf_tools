@@ -17,6 +17,22 @@ We normally use this tool to test performance counter settings and to
 measure whole-program statistics.
 
 
+perfgroup
+---------
+
+Similar to rawperf, but instead of monitoring a single application, it
+starts a group of applications and monitors all of the applications.
+
+Just like rawperf, it dumps application statistics on exit and when
+receiving a SIGUSR1. Unlike rawperf, counter statistics are always
+printed on STDERR.
+
+Perfgroup automatically pins target applications to OS threads. By
+default, it pins applications to threads sequentially, starting with
+thread 0. The '-c'/'--cpu-list' option can be used to specify custom
+mappings between target applications and OS threads.
+
+
 perfrecord
 ----------
 
