@@ -223,24 +223,6 @@ print_counter_list(FILE *out, ctr_list_t *list)
     free(data);
 }
 
-static int
-create_signal_fd()
-{
-    sigset_t mask;
-    int sfd;
-
-    /* Setup a signal fd for SIGINT, SIGCHLD and SIGUSR1 */
-    sigemptyset(&mask);
-    sigaddset(&mask, SIGINT);
-    sigaddset(&mask, SIGCHLD);
-    sigaddset(&mask, SIGUSR1);
-    EXPECT(sigprocmask(SIG_BLOCK, &mask, NULL) != -1);
-    sfd = signalfd(-1, &mask, 0);
-    EXPECT(sfd != -1);
-
-    return sfd;
-}
-
 static void
 print_counters(FILE *out)
 {
@@ -278,6 +260,28 @@ setup_child(void *_p)
 }
 
 static void
+handle_fatal_signal(int sig, siginfo_t *si, void *_ucontext)
+{
+#define WRITE_TXT(t) write(STDERR_FILENO, t, sizeof(t) - 1)
+
+    WRITE_TXT("Caught fatal signal, terminating child processes\n");
+    for (int i = 0; i < num_processes; i++) {
+	bench_process_t *p = processes + i;
+	if (process_running(p))
+            if (kill(-p->pid, SIGTERM) == -1)
+                WRITE_TXT("Warning: Failed to terminate a child process\n");
+    }
+
+    WRITE_TXT("Passing signal to default handler...\n");
+    raise(si->si_signo);
+
+    WRITE_TXT("Failed to pass signal to default handler, aborting\n");
+    abort();
+
+#undef WRITE_TXT
+}
+
+static void
 handle_signal(struct signalfd_siginfo *fdsi)
 {
     switch (fdsi->ssi_signo) {
@@ -308,12 +312,51 @@ handle_signal(struct signalfd_siginfo *fdsi)
     }
 }
 
+static void
+catch_fatal_signals()
+{
+    struct sigaction sa = {
+        .sa_sigaction = &handle_fatal_signal,
+        .sa_flags = SA_SIGINFO | SA_RESETHAND | SA_NODEFER,
+    };
+
+    int siglist[] = {
+        SIGABRT,
+        SIGQUIT,
+        SIGTERM,
+    };
+
+    sigemptyset(&sa.sa_mask);
+    for (int i = 0; i < sizeof(siglist) / sizeof(*siglist); i++)
+        EXPECT_ERRNO(sigaction(siglist[i], &sa, NULL) != -1);
+}
+
+static int
+create_signal_fd()
+{
+    sigset_t mask;
+    int sfd;
+
+    /* Setup a signal fd for SIGINT, SIGCHLD and SIGUSR1 */
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGCHLD);
+    sigaddset(&mask, SIGUSR1);
+    EXPECT(sigprocmask(SIG_BLOCK, &mask, NULL) != -1);
+    sfd = signalfd(-1, &mask, 0);
+    EXPECT(sfd != -1);
+
+    return sfd;
+}
+
+
 static int
 do_start()
 {
     int sfd;
     int exit_status = EXIT_SUCCESS;
 
+    catch_fatal_signals();
     sfd = create_signal_fd();
 
     for (int i = 0; i < num_processes; i++) {
