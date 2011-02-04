@@ -84,6 +84,15 @@ typedef struct {
     ctr_list_t ctrs;
 } bench_process_t;
 
+
+/* Fatal signals that should be caught and handled by
+ * handle_fatal_signal */
+static int fatal_signals[] = {
+    SIGABRT,
+    SIGQUIT,
+    SIGTERM,
+};
+
 static run_state_t run_state = RUN_STATE_STARTING;
 
 /* Configuration options */
@@ -239,7 +248,18 @@ setup_child(void *_p)
 {
     bench_process_t *p = (bench_process_t *)_p;
     cpu_set_t cpu_set;
+    struct sigaction sa = {
+        .sa_handler = SIG_DFL,
+    };
 
+    /* Reset signal handlers so we don't try to kill child processes
+     * on fatal signals. Remember that this code is executing in a
+     * child process just befor the exec. */
+    sigemptyset(&sa.sa_mask);
+    for (int i = 0; i < sizeof(fatal_signals) / sizeof(*fatal_signals); i++)
+        sigaction(fatal_signals[i], &sa, NULL);
+
+    /* Setup CPU pinning */
     CPU_ZERO(&cpu_set);
     CPU_SET(p->cpu, &cpu_set);
     EXPECT_ERRNO(sched_setaffinity(0, sizeof(cpu_set_t), &cpu_set) != -1);
@@ -320,15 +340,9 @@ catch_fatal_signals()
         .sa_flags = SA_SIGINFO | SA_RESETHAND | SA_NODEFER,
     };
 
-    int siglist[] = {
-        SIGABRT,
-        SIGQUIT,
-        SIGTERM,
-    };
-
     sigemptyset(&sa.sa_mask);
-    for (int i = 0; i < sizeof(siglist) / sizeof(*siglist); i++)
-        EXPECT_ERRNO(sigaction(siglist[i], &sa, NULL) != -1);
+    for (int i = 0; i < sizeof(fatal_signals) / sizeof(*fatal_signals); i++)
+        EXPECT_ERRNO(sigaction(fatal_signals[i], &sa, NULL) != -1);
 }
 
 static int
