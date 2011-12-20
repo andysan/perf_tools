@@ -59,40 +59,41 @@ char **exec_argv = NULL;
 int monitor_cpu = -1;
 int force_cpu = -1;
 int scale = 0;
+FILE *fout = NULL;
 
 static void
-print_event(FILE *out, const struct perf_event_attr *attr, uint64_t value)
+print_event(const struct perf_event_attr *attr, uint64_t value)
 {
     switch (attr->type) {
     case PERF_TYPE_HARDWARE:
-        fprintf(out, "hw %" PRIu64 ": %" PRIu64 "\n",
+        fprintf(fout, "hw %" PRIu64 ": %" PRIu64 "\n",
                 (uint64_t)attr->config, value);
         break;
 
     case PERF_TYPE_SOFTWARE:
-        fprintf(out, "sw %" PRIu64 ": %" PRIu64 "\n",
+        fprintf(fout, "sw %" PRIu64 ": %" PRIu64 "\n",
                 (uint64_t)attr->config, value);
         break;
 
     case PERF_TYPE_HW_CACHE:
-        fprintf(out, "hwc 0x%" PRIx64 ": %" PRIu64 "\n",
+        fprintf(fout, "hwc 0x%" PRIx64 ": %" PRIu64 "\n",
                 (uint64_t)attr->config, value);
         break;
 
     case PERF_TYPE_RAW:
-        fprintf(out, "raw 0x%" PRIx64 ": %" PRIu64 "\n",
+        fprintf(fout, "raw 0x%" PRIx64 ": %" PRIu64 "\n",
                 (uint64_t)attr->config, value);
         break;
 
     default:
-        fprintf(out, "unknown event (%" PRIu32 ":%" PRIu64 "): %" PRIu64 "\n",
+        fprintf(fout, "unknown event (%" PRIu32 ":%" PRIu64 "): %" PRIu64 "\n",
                 (uint32_t)attr->type, (uint64_t)attr->config, value);
         break;
     }
 }
 
 static void
-print_counters(FILE *out)
+print_counters()
 {
     int no_counters, data_size, ret;
     struct read_format {
@@ -125,7 +126,7 @@ print_counters(FILE *out)
         assert(i < data->nr);
         struct ctr_data *ctr = &data->ctr[i++];
 
-        print_event(out, &cur->attr, (uint64_t)(ctr->val * scaling_factor));
+        print_event(&cur->attr, (uint64_t)(ctr->val * scaling_factor));
     }
 
     free(data);
@@ -178,7 +179,7 @@ do_attach()
                 done = 1;
                 break;
             case SIGUSR1:
-                print_counters(stdout);
+                print_counters();
                 break;
             default:
                 /* Ignore other signals */
@@ -187,7 +188,7 @@ do_attach()
         }
     }
 
-    print_counters(stdout);
+    print_counters();
 }
 
 static void
@@ -239,11 +240,11 @@ do_start()
                 kill(pid, SIGTERM);
                 break;
             case SIGUSR1:
-                print_counters(stderr);
+                print_counters();
                 break;
             case SIGCHLD: {
                 int status;
-                print_counters(stderr);
+                print_counters();
 
                 EXPECT(waitpid(pid, &status, 0) != -1);
 
@@ -267,6 +268,8 @@ do_start()
 static error_t
 parse_opt (int key, char *arg, struct argp_state *state)
 {
+    static char *output_name = NULL;
+
     switch (key)
     {
     case 'p':
@@ -281,6 +284,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
     case 's':
         scale = 0;
+        break;
+
+    case 'o':
+        output_name = arg;
         break;
 
     case ARGP_KEY_ARG:
@@ -300,6 +307,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
             argp_error(state,
                        "Neither a command to execute, nor a PID to attach have\n"
                        "been specified. Don't know what to do.");
+
+        if (output_name) {
+            fout = fopen(output_name, "w");
+            if (!fout)
+                argp_failure(state, EXIT_FAILURE, errno,
+                             "Failed to open output file");
+        } else
+            fout = exec_argv ? stderr : stdout;
 
         break;
      
@@ -326,6 +341,10 @@ static struct argp_option arg_options[] = {
     { "scale", 's', NULL, 0, "Enable counter scaling", 0 },
     { "force-cpu", 'c', "CPU", 0,
       "Pin child process to CPU. This option does not work with attach.", 0 },
+
+    { "output", 'o', "FILE", 0,
+      "Output file. Defaults to stdout if attaching to target, stderr "
+      "otherwise.", 0 },
 
     { 0 }
 };
@@ -368,6 +387,9 @@ main(int argc, char **argv)
         do_start();
     else
         do_attach();
+
+    if (fout != stderr && fout != stdout)
+        fclose(fout);
 
     exit(EXIT_SUCCESS);
 }
