@@ -49,6 +49,15 @@
 #include "expect.h"
 #include "util.h"
 
+typedef struct {
+    uint64_t nr;
+    uint64_t time_enabled;
+    uint64_t time_running;
+    struct ctr_data {
+        uint64_t val;
+    } ctr[];
+} raw_read_format_t;
+
 /* Constant for the no-such-pid number, we can't use -1 since that has
  * a special meaning in perf. */
 #define NO_PID INT_MIN
@@ -60,53 +69,106 @@ int monitor_cpu = -1;
 int force_cpu = -1;
 int scale = 0;
 FILE *fout = NULL;
+int fmt_csv = 0;
 
 static void
-print_event(const struct perf_event_attr *attr, uint64_t value)
+print_txt(const ctr_t *head, const raw_read_format_t *data,
+          double scale_factor)
 {
-    switch (attr->type) {
-    case PERF_TYPE_HARDWARE:
-        fprintf(fout, "hw %" PRIu64 ": %" PRIu64 "\n",
-                (uint64_t)attr->config, value);
-        break;
+    int i = 0;
+    for (ctr_t *cur = perf_ctrs.head; cur; cur = cur->next) {
+        assert(i < data->nr);
+        const struct ctr_data *ctr = &data->ctr[i++];
+        const double value = ctr->val * scale_factor;
+        
 
-    case PERF_TYPE_SOFTWARE:
-        fprintf(fout, "sw %" PRIu64 ": %" PRIu64 "\n",
-                (uint64_t)attr->config, value);
-        break;
+        switch (cur->attr.type) {
+        case PERF_TYPE_HARDWARE:
+            fprintf(fout, "hw %" PRIu64 ": %.0f\n",
+                    (uint64_t)cur->attr.config, value);
+            break;
 
-    case PERF_TYPE_HW_CACHE:
-        fprintf(fout, "hwc 0x%" PRIx64 ": %" PRIu64 "\n",
-                (uint64_t)attr->config, value);
-        break;
+        case PERF_TYPE_SOFTWARE:
+            fprintf(fout, "sw %" PRIu64 ": %.0f\n",
+                    (uint64_t)cur->attr.config, value);
+            break;
 
-    case PERF_TYPE_RAW:
-        fprintf(fout, "raw 0x%" PRIx64 ": %" PRIu64 "\n",
-                (uint64_t)attr->config, value);
-        break;
+        case PERF_TYPE_HW_CACHE:
+            fprintf(fout, "hwc 0x%" PRIx64 ": %.0f\n",
+                    (uint64_t)cur->attr.config, value);
+            break;
 
-    default:
-        fprintf(fout, "unknown event (%" PRIu32 ":%" PRIu64 "): %" PRIu64 "\n",
-                (uint32_t)attr->type, (uint64_t)attr->config, value);
-        break;
+        case PERF_TYPE_RAW:
+            fprintf(fout, "raw 0x%" PRIx64 ": %.0f\n",
+                    (uint64_t)cur->attr.config, value);
+            break;
+
+        default:
+            fprintf(fout, "unknown event (%" PRIu32 ":%" PRIu64 "): %.0f\n",
+                    (uint32_t)cur->attr.type, (uint64_t)cur->attr.config, value);
+            break;
+        }
     }
+}
+
+static void
+print_csv(const ctr_t *head, const raw_read_format_t *data,
+          double scale_factor)
+{
+    int i;
+
+    i = 0;
+    for (ctr_t *cur = perf_ctrs.head; cur; cur = cur->next) {
+        switch (cur->attr.type) {
+        case PERF_TYPE_HARDWARE:
+            fprintf(fout, "# %i: hw %" PRIu64 "\n",
+                    i, (uint64_t)cur->attr.config);
+            break;
+
+        case PERF_TYPE_SOFTWARE:
+            fprintf(fout, "# %i: sw %" PRIu64 "\n",
+                    i, (uint64_t)cur->attr.config);
+            break;
+
+        case PERF_TYPE_HW_CACHE:
+            fprintf(fout, "# %i: hwc 0x%" PRIx64 "\n",
+                    i, (uint64_t)cur->attr.config);
+            break;
+
+        case PERF_TYPE_RAW:
+            fprintf(fout, "# %i: raw 0x%" PRIx64 "\n",
+                    i, (uint64_t)cur->attr.config);
+            break;
+
+        default:
+            fprintf(fout, "# %i: unknown event (%" PRIu32 ":%" PRIu64 ")\n",
+                    i, (uint32_t)cur->attr.type, (uint64_t)cur->attr.config);
+            break;
+        }
+
+        i++;
+    }
+
+    for (i = 0; i < data->nr; i++) {
+        const struct ctr_data *ctr = &data->ctr[i];
+        const double value = ctr->val * scale_factor;
+
+        if (i == 0)
+            fprintf(fout, "%.0f", value);
+        else
+            fprintf(fout, ",%.0f", value);
+    }
+    fprintf(fout, "\n");
 }
 
 static void
 print_counters()
 {
     int no_counters, data_size, ret;
-    struct read_format {
-        uint64_t nr;
-        uint64_t time_enabled;
-        uint64_t time_running;
-        struct ctr_data {
-            uint64_t val;
-        } ctr[];
-    } *data;
+    raw_read_format_t *data;
 
     no_counters = ctrs_len(&perf_ctrs);
-    data_size = sizeof(struct read_format) + sizeof(struct ctr_data) * no_counters;
+    data_size = sizeof(raw_read_format_t) + sizeof(struct ctr_data) * no_counters;
     EXPECT(data = malloc(data_size));
     memset(data, '\0', data_size);
 
@@ -120,14 +182,11 @@ print_counters()
                 "but got %i bytes.\n",
                 data_size, ret);
 
-    int i = 0;
-    const double scaling_factor = scale ? data->time_enabled / data->time_running : 1.0;
-    for (ctr_t *cur = perf_ctrs.head; cur; cur = cur->next) {
-        assert(i < data->nr);
-        struct ctr_data *ctr = &data->ctr[i++];
-
-        print_event(&cur->attr, (uint64_t)(ctr->val * scaling_factor));
-    }
+    const double scale_factor = scale ? data->time_enabled / data->time_running : 1.0;
+    if (fmt_csv)
+        print_csv(perf_ctrs.head, data, scale_factor);
+    else
+        print_txt(perf_ctrs.head, data, scale_factor);
 
     free(data);
 }
@@ -265,6 +324,10 @@ do_start()
 
 
 /*** argument handling ************************************************/
+enum {
+    KEY_CSV = -1,
+};
+
 static error_t
 parse_opt (int key, char *arg, struct argp_state *state)
 {
@@ -288,6 +351,10 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
     case 'o':
         output_name = arg;
+        break;
+
+    case KEY_CSV:
+        fmt_csv = 1;
         break;
 
     case ARGP_KEY_ARG:
@@ -345,6 +412,7 @@ static struct argp_option arg_options[] = {
     { "output", 'o', "FILE", 0,
       "Output file. Defaults to stdout if attaching to target, stderr "
       "otherwise.", 0 },
+    { "csv", KEY_CSV, NULL, 0, "Use CSV output instead of plain text", 0 },
 
     { 0 }
 };
