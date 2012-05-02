@@ -2,5 +2,6 @@ perfrecord
 rawperf
 perfdump
 perfgroup
+/perfpirate
 *.o
 *~

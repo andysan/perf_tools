@@ -26,7 +26,7 @@ endif
 CFLAGS=-g -Wall -std=gnu99 $(CONFIG)
 
 
-all: rawperf perfrecord perfdump perfgroup
+all: rawperf perfrecord perfdump perfgroup perfpirate
 
 %.o: %.c util.h expect.h perf_common.h perf_file.h dumpers.h perf_argp.h
 
@@ -37,6 +37,9 @@ perfrecord: perfrecord.o util.o perf_file.o perf_common.o perf_argp.o
 perfdump: perfdump.o perf_file.o perf_common.o util.o dumper_csv.o dumper_dump.o
 
 perfgroup: perfgroup.o util.o perf_common.o perf_argp.o
+
+perfpirate: perfpirate.o util.o perf_file.o perf_common.o perf_argp.o
+	$(CC) $^ -lpthread -o $@
 
 clean:
 	$(RM) *.o rawperf perfrecord perfdump
