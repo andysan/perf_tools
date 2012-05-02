@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011, Andreas Sandberg
+ * Copyright (C) 2010-2012, Andreas Sandberg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -40,10 +40,6 @@
 #include "perf_common.h"
 #include "expect.h"
 
-#undef CTRS_SEND_FDS
-
-#ifndef CTRS_SEND_FDS
-
 typedef enum {
     SYNC_WAITING = 0,
     SYNC_GO,
@@ -54,7 +50,6 @@ typedef struct {
     sync_type_t type;
 } sync_msg_t;
 
-#endif
 
 ctr_t *
 ctr_create(const struct perf_event_attr *base_attr)
@@ -147,26 +142,6 @@ ctrs_len(ctr_list_t *list)
     return count;
 }
 
-#ifdef CTRS_SEND_FDS
-
-static void
-ctrs_send_fds(ctr_list_t *list, int sockfd)
-{
-    /* XXX: Error checking */
-    for (ctr_t *cur = list->head; cur; cur = cur->next)
-        send_fd(sockfd, cur->fd);
-}
-
-static void
-ctrs_recv_fds(ctr_list_t *list, int sockfd)
-{
-    /* XXX: Error checking */
-    for (ctr_t *cur = list->head; cur; cur = cur->next)
-        cur->fd = recv_fd(sockfd);
-}
-
-#else
-
 static void
 sync_send(int fd, const sync_msg_t *msg)
 {
@@ -202,8 +177,6 @@ sync_wait_simple(int fd, sync_type_t type)
     EXPECT(msg.type == type);
 }
 
-#endif
-
 pid_t
 ctrs_execvp_cb(ctr_list_t *list, int cpu, int flags,
                void (*child_callback)(void *data), void *callback_data,
@@ -229,15 +202,8 @@ ctrs_execvp_cb(ctr_list_t *list, int cpu, int flags,
         if (child_callback)
             child_callback(callback_data);
 
-#ifdef CTRS_SEND_FDS
-        if (ctrs_attach(list, 0 /* pid */, cpu, flags) == -1)
-            exit(EXIT_FAILURE);
-
-        ctrs_send_fds(list, fds[1]);
-#else
         sync_send_simple(fds[1], SYNC_WAITING);
         sync_wait_simple(fds[1], SYNC_GO);
-#endif
 
         close(fds[1]);
 
@@ -246,9 +212,6 @@ ctrs_execvp_cb(ctr_list_t *list, int cpu, int flags,
         exit(EXIT_FAILURE);
     } else {
         close(fds[1]);
-#ifdef CTRS_SEND_FDS
-        ctrs_recv_fds(list, fds[0]);
-#else
         sync_wait_simple(fds[0], SYNC_WAITING);
 
         if (ctrs_attach(list, pid, cpu, flags) == -1) {
@@ -257,7 +220,6 @@ ctrs_execvp_cb(ctr_list_t *list, int cpu, int flags,
         }
 
         sync_send_simple(fds[0], SYNC_GO);
-#endif
         close(fds[0]);
 
         return pid;
