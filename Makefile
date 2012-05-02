@@ -23,7 +23,7 @@ ifneq ($(shell grep '^[[:space:]]*precise_ip' $(PERF_EVENT_H) 2>/dev/null),)
 CONFIG+=-DHAVE_PRECISE_IP
 endif
 
-CFLAGS=-g -Wall -std=gnu99 $(CONFIG)
+CFLAGS=-g -O2 -fno-strict-aliasing -Wall -std=gnu99 $(CONFIG)
 
 
 all: rawperf perfrecord perfdump perfgroup perfpirate
