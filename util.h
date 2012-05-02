@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011, Andreas Sandberg
+ * Copyright (C) 2010-2012, Andreas Sandberg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,6 +31,8 @@
 #ifndef UTIL_H
 #define UTIL_H
 
+#include <stddef.h>
+
 size_t read_all(int fd, void *buf, size_t size);
 size_t write_all(int fd, const void *buf, size_t size);
 
@@ -38,6 +40,9 @@ void send_fd(int sockfd, int fd);
 int recv_fd(int sockfd);
 
 void fredirect(FILE *new, int fd);
+
+void *mem_huge_alloc(size_t size);
+void mem_huge_free(void *addr, size_t size);
 
 #endif
 

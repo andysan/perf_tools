@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011, Andreas Sandberg
+ * Copyright (C) 2010-2012, Andreas Sandberg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -29,12 +29,24 @@
  */
 
 #include <sys/socket.h>
+#include <sys/mman.h>
 
 #include <unistd.h>
 #include <assert.h>
 
 #include "expect.h"
 #include "util.h"
+
+
+#if !defined(MAP_HUGETLB)
+/* MAP_HUGETLB is supported for kernels newer than 2.6.32 (might have
+ * been supported earlier). Define MAP_HUGETLB in case it wasn't
+ * defined by the system headers. */
+#define MAP_HUGETLB     0x40000
+#endif
+
+/* Round size (upwards) to the nearest multiple of 2 MiB */
+#define ROUND_U(x) (((x) + (1 << 21)) & ~((1 << 21) - 1))
 
 size_t
 read_all(int fd, void *buf, size_t size)
@@ -136,6 +148,24 @@ fredirect(FILE *new, int fd)
     fd_new = fileno(new);
     EXPECT_ERRNO(fd_new != -1);
     EXPECT_ERRNO(dup2(fd_new, fd) != -1);
+}
+
+void *
+mem_huge_alloc(size_t size)
+{
+    void *ptr;
+    ptr = mmap(NULL, ROUND_U(size),
+	       PROT_READ | PROT_WRITE,
+	       MAP_PRIVATE | MAP_ANONYMOUS | MAP_HUGETLB,
+	       -1, 0);
+
+    return ptr == MAP_FAILED ? NULL : ptr;
+}
+
+void
+mem_huge_free(void *addr, size_t size)
+{
+    munmap(addr, ROUND_U(size));
 }
 
 
