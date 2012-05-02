@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011, Andreas Sandberg
+ * Copyright (C) 2010-2012, Andreas Sandberg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -31,7 +31,6 @@
 #ifndef PERF_FILE_H
 #define PERF_FILE_H
 
-#include <stdio.h>
 #include "perf_common.h"
 
 /*
@@ -48,12 +47,12 @@
 /**
  *
  */
-int ctrs_write_header(ctr_list_t *ctrs, FILE *file);
+int ctrs_write_header(ctr_list_t *ctrs, int fd);
 
 /**
  *
  */
-int ctrs_read_header(ctr_list_t *ctrs, FILE *file);
+int ctrs_read_header(ctr_list_t *ctrs, int fd);
 
 #endif
 

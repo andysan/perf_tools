@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011, Andreas Sandberg
+ * Copyright (C) 2010-2012, Andreas Sandberg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -33,7 +33,9 @@
 #include <sys/wait.h>
 #include <sys/mman.h>
 #include <sys/signalfd.h>
+#include <sys/stat.h>
 
+#include <fcntl.h>
 #include <sched.h>
 #include <poll.h>
 #include <stdlib.h>
@@ -53,6 +55,8 @@
 
 #undef DEBUG
 
+#define DEFAULT_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH)
+
 #define NO_PID -1
 
 #define RING_BUF_NUM_PAGES 17
@@ -66,7 +70,7 @@ static uint64_t my_head = 0;
 /* Configuration options */
 pid_t attach_pid = NO_PID;
 char **exec_argv = NULL;
-FILE *output;
+int output_fd;
 char *output_name;
 int force_cpu = -1;
 
@@ -124,12 +128,12 @@ dump_events()
 #ifdef DEBUG
         fprintf(stderr, "Buffer wrap.\n");
 #endif
-        fwrite(perf_buf + start, size - start_size, 1, output);
+        write_all(output_fd, perf_buf + start, size - start_size);
         start = 0;
         size = start_size;
     }
 
-    EXPECT(fwrite(perf_buf + start, size, 1, output) == 1);
+    write_all(output_fd, perf_buf + start, size);
 
     my_head = new_head;
     write_tail(new_head);
@@ -364,12 +368,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
                        "been specified. Don't know what to do.\n");
 
         if (output_name) {
-            output = fopen(output_name, "w");
-            if (!output)
+            output_fd = open(output_name,
+                             O_WRONLY | O_CREAT | O_TRUNC,
+                             DEFAULT_MODE);
+            if (output_fd == -1)
                 argp_failure(state, EXIT_FAILURE, errno,
                              "Failed to open output file");
         } else
-            output = stdout;
+            output_fd = STDOUT_FILENO;
 
         break;
      
@@ -438,7 +444,7 @@ main(int argc, char **argv)
     buf_mask = page_size * (RING_BUF_NUM_PAGES - 1) - 1;
     EXPECT_ERRNO(page_size != -1);
 
-    EXPECT(ctrs_write_header(&perf_ctrs, output) == 1);
+    EXPECT(ctrs_write_header(&perf_ctrs, output_fd) == 1);
 
     if (exec_argv)
         do_start();

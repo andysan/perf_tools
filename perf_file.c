@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011, Andreas Sandberg
+ * Copyright (C) 2010-2012, Andreas Sandberg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -32,47 +32,46 @@
 #include <stdint.h>
 
 #include "expect.h"
+#include "util.h"
 #include "perf_file.h"
 
 int
-ctrs_write_header(ctr_list_t *ctrs, FILE *file)
+ctrs_write_header(ctr_list_t *ctrs, int fd)
 {
     uint16_t no_counters;
     assert(ctrs);
-    assert(file);
 
     no_counters = (uint16_t)ctrs_len(ctrs);
-    EXPECT(fwrite(MAGIC, sizeof(MAGIC), 1, file) == 1);
-    EXPECT(fwrite(&no_counters, sizeof(no_counters), 1, file) == 1);
+    write_all(fd, MAGIC, sizeof(MAGIC));
+    write_all(fd, &no_counters, sizeof(no_counters));
     for (ctr_t *c = ctrs->head; c; c = c->next)
-        EXPECT(fwrite(&c->attr, sizeof(c->attr), 1, file) == 1);
+        write_all(fd, &c->attr, sizeof(c->attr));
 
     return 1;
 }
 
 int
-ctrs_read_header(ctr_list_t *ctrs, FILE *file)
+ctrs_read_header(ctr_list_t *ctrs, int fd)
 {
     uint16_t no_counters;
     char magic[sizeof(MAGIC)];
 
     assert(ctrs);
-    assert(file);
 
     ctrs->head = NULL;
     ctrs->tail = NULL;
 
-    EXPECT(fread(magic, sizeof(magic), 1, file) == 1);
+    EXPECT(read_all(fd, magic, sizeof(magic)) != 0);
     EXPECT(memcmp(magic, MAGIC, sizeof(magic)) == 0);
 
-    EXPECT(fread(&no_counters, sizeof(no_counters), 1, file) == 1);
+    EXPECT(read_all(fd, &no_counters, sizeof(no_counters)) != 0);
 
     for (int i = 0; i < no_counters; i++) {
         ctr_t *c = malloc(sizeof(ctr_t));
         c->fd = -1;
         c->next = NULL;
 
-        EXPECT(fread(&c->attr, sizeof(c->attr), 1, file) == 1);
+        EXPECT(read_all(fd, &c->attr, sizeof(c->attr)) != 0);
         ctrs_add(ctrs, c);
     }
 

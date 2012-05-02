@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2010-2011, Andreas Sandberg
+ * Copyright (C) 2010-2012, Andreas Sandberg
  * All rights reserved.
  *
  * Redistribution and use in source and binary forms, with or without
@@ -28,6 +28,9 @@
  * OF THE POSSIBILITY OF SUCH DAMAGE.
  */
 
+#include <sys/stat.h>
+#include <fcntl.h>
+
 #include <stdlib.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -37,11 +40,12 @@
 #include <argp.h>
 
 #include "expect.h"
+#include "util.h"
 #include "perf_compat.h"
 #include "perf_file.h"
 #include "dumpers.h"
 
-static FILE *input;
+static int input_fd;
 static char *output_name;
 static char *input_name;
 
@@ -71,11 +75,11 @@ dump_event()
     event_dumper_t *dumper;
     char data[0xFFFF];
 
-    if (fread(&hdr, sizeof(hdr), 1, input) != 1)
+    if (read_all(input_fd, &hdr, sizeof(hdr)) == 0)
         return -1;
 
     assert(hdr.size >= sizeof(hdr));
-    if (fread(data, hdr.size - sizeof(hdr), 1, input) != 1)
+    if (read_all(input_fd, data, hdr.size - sizeof(hdr)) == 0)
         return -1;
 
     dumper = find_dumper(hdr.type);
@@ -89,11 +93,6 @@ dump_events()
 {
     while (dump_event() != -1)
         ;
-
-    if (ferror(input)) {
-        perror("Failed to read events");
-        exit(EXIT_FAILURE);
-    }
 }
 
 /*** argument handling ************************************************/
@@ -154,12 +153,12 @@ parse_opt (int key, char *arg, struct argp_state *state)
 
     case ARGP_KEY_END:
         if (input_name) {
-            input = fopen(input_name, "r");
-            if (!input)
+            input_fd = open(input_name, O_RDONLY);
+            if (input_fd == -1)
                 argp_failure(state, EXIT_FAILURE, errno,
                              "Failed to open input file");
         } else
-            input = stdin;
+            input_fd = STDIN_FILENO;
 
         if (output_name) {
             conf.output = fopen(output_name, "w");
@@ -188,7 +187,7 @@ main(int argc, char **argv)
                 NULL);
 
 
-    EXPECT(ctrs_read_header(&ctrs, input) == 1);
+    EXPECT(ctrs_read_header(&ctrs, input_fd) == 1);
     EXPECT(ctrs.head);
 
     dumper->init(&ctrs, &conf);
