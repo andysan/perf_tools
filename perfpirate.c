@@ -59,6 +59,7 @@
 typedef struct {
     void *data;
     int size;
+    int alloc_size;
     int stride;
     int cpu;
 } pirate_conf_t;
@@ -67,6 +68,14 @@ typedef enum {
     TARGET_WAIT_EXEC,
     TARGET_RUNNING,
 } target_state_t;
+
+
+#define MIN(a,b) ((a) < (b) ? (a) : (b))
+
+#ifndef MEM_HUGE_SIZE
+/* The size of a huge page */
+#define MEM_HUGE_SIZE (2*(1<<20))
+#endif
 
 #define DEFAULT_MODE (S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH)
 
@@ -98,10 +107,12 @@ static pthread_t pirate_thread;
 static pirate_conf_t pirate_conf = {
     .data = NULL,
     .size = 512*1024,
+    .alloc_size = 512*1024,
     .stride = 64,
     .cpu = 0,
 };
 static pthread_barrier_t pirate_barrier;
+static int way_size = 0;
 
 static inline void
 barrier()
@@ -314,14 +325,43 @@ setup_target(void *data)
     EXPECT_ERRNO(ptrace(PTRACE_TRACEME, 0, NULL, NULL) != -1);
 }
 
+__attribute__((noreturn,noinline))
+static void
+pirate_loop(char *_data, const int size, const int stride)
+{
+    volatile char *data = (volatile char *)_data;
+
+    while (1) {
+        for (int i = 0; i < size; i += stride) {
+            char discard;
+            discard = data[i];
+        }
+    }
+}
+
+__attribute__((noreturn,noinline))
+static void
+pirate_loop_fix(char *_data, const int size, const int stride)
+{
+    volatile char *data = (volatile char *)_data;
+    const int last_element = (size / way_size) * MEM_HUGE_SIZE \
+        + (size % way_size);
+
+    while (1) {
+        for (int i = 0; i < last_element; i += MEM_HUGE_SIZE) {
+            const int limit = MIN(i + way_size, last_element);
+            for (int j = i; j < limit; j += stride) {
+                char discard;
+                discard = data[j];
+            }
+        }
+    }
+}
+
 static void *
 pirate_main(void *_conf)
 {
     pirate_conf_t *conf = (pirate_conf_t *)_conf;
-
-    volatile char *data = (volatile char *)conf->data;
-    const int size = conf->size;
-    const int stride = conf->stride;
 
     pthread_t thread;
     cpu_set_t cpu_set;
@@ -331,6 +371,11 @@ pirate_main(void *_conf)
     thread = pthread_self();
     EXPECT(pthread_setaffinity_np(thread, sizeof(cpu_set_t), &cpu_set) == 0);
 
+    /** Write some data to the data array, this makes sure that we get
+     * backing storage for the entire allocation */
+    for (int i = 0; i < conf->alloc_size; i += conf->stride)
+	((char *)conf->data)[i] = i & 0xFF;
+
     /* TODO: Check if this is a PID or TID */
     EXPECT(ctrs_attach(&pirate_ctrs,
                        0 /* pid */,
@@ -339,12 +384,10 @@ pirate_main(void *_conf)
 
     pthread_barrier_wait(&pirate_barrier);
 
-    while (1) {
-        for (int i = 0; i < size; i += stride) {
-            char discard;
-            discard = data[i];
-        }
-    }
+    if (way_size > 0)
+        pirate_loop_fix(conf->data, conf->size, conf->stride);
+    else
+        pirate_loop(conf->data, conf->size, conf->stride);
 }
 
 static void
@@ -439,6 +482,12 @@ parse_opt (int key, char *arg, struct argp_state *state)
             argp_error(state, "Stride must be positive\n");
         break;
 
+    case 'w':
+        way_size = perf_argp_parse_long("SIZE", arg, state);
+        if (way_size < 0)
+            argp_error(state, "Way size must be positive\n");
+        break;
+
     case ARGP_KEY_ARG:
         if (!state->quoted)
             argp_error(state, "Illegal argument\n");
@@ -467,7 +516,14 @@ parse_opt (int key, char *arg, struct argp_state *state)
                          "Failed to open pirate output file");
 
 
-        pirate_conf.data = mem_huge_alloc(pirate_conf.size);
+        if (way_size > 0)
+            pirate_conf.alloc_size = (
+                (pirate_conf.size / way_size) +
+                ((pirate_conf.size % way_size) ? 1 : 0)) * MEM_HUGE_SIZE;
+        else
+            pirate_conf.alloc_size = pirate_conf.size;
+
+        pirate_conf.data = mem_huge_alloc(pirate_conf.alloc_size);
         if (!pirate_conf.data)
             argp_failure(state, EXIT_FAILURE, errno,
                          "Failed to allocate memory for pirate");
@@ -503,6 +559,11 @@ static struct argp_option arg_options[] = {
       "Pirate data set size.", 0 },
     { "pirate-stride", 'S', "SIZE", 0,
       "Pirate pirate stride length.", 0 },
+
+    { "way-size", 'w', "SIZE", 0,
+      "Specify the size of one way in the cache. Setting this option enables "
+      "the pirate to work around some corner cases for some caches with a "
+      "size that is not a power of 2.", 0 },
 
     { 0 }
 };
