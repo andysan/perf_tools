@@ -84,6 +84,17 @@ ctr_t *ctrs_add(ctr_list_t *list, ctr_t *ctr);
 int ctrs_len(ctr_list_t *list);
 
 /**
+ * Copy a list of counter configurations.
+ *
+ * @note Only counter definitions are included. Fields initialized
+ * when attaching (e.g., fd) are initialized to their default values.
+ *
+ * @param dest Destionation list. Must be empty.
+ * @param src Source list.o
+ */
+void ctrs_cpy_conf(ctr_list_t *dest, ctr_list_t *src);
+
+/**
  * Attach all counters in a list to a process/cpu combination.
  *
  * @param list List of counters to attach

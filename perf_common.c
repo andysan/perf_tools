@@ -142,6 +142,22 @@ ctrs_len(ctr_list_t *list)
     return count;
 }
 
+void
+ctrs_cpy_conf(ctr_list_t *dest, ctr_list_t *src)
+{
+    assert(!dest->head);
+    assert(!dest->tail);
+    assert(src->head);
+    assert(src->tail);
+
+    for (ctr_t *cur = src->head; cur; cur = cur->next) {
+        ctr_t *ctr;
+
+        ctr = ctr_create(&cur->attr);
+        ctrs_add(dest, ctr);
+    }
+}
+
 static void
 sync_send(int fd, const sync_msg_t *msg)
 {
