@@ -333,7 +333,7 @@ pirate_loop(char *_data, const int size, const int stride)
 
     while (1) {
         for (int i = 0; i < size; i += stride) {
-            char discard;
+            char discard __attribute__((unused));
             discard = data[i];
         }
     }
@@ -351,7 +351,7 @@ pirate_loop_fix(char *_data, const int size, const int stride)
         for (int i = 0; i < last_element; i += MEM_HUGE_SIZE) {
             const int limit = MIN(i + way_size, last_element);
             for (int j = i; j < limit; j += stride) {
-                char discard;
+                char discard __attribute__((unused));
                 discard = data[j];
             }
         }
