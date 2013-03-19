@@ -6,7 +6,10 @@ KERNEL_SRC=/lib/modules/$(KERNEL_RELEASE)/source
 # Check if perf_event there is a perf_event.h available in the source
 # of the running kernel. In that case, assume that it's newer and use
 # that.
-ifneq ($(wildcard $(KERNEL_SRC)/include/linux/perf_event.h),)
+ifneq ($(wildcard $(KERNEL_SRC)/include/uapi/linux/perf_event.h),)
+  PERF_EVENT_H=$(KERNEL_SRC)/include/uapi/linux/perf_event.h
+  CONFIG+=-DPERFH=\"$(PERF_EVENT_H)\"
+else ifneq ($(wildcard $(KERNEL_SRC)/include/linux/perf_event.h),)
   PERF_EVENT_H=$(KERNEL_SRC)/include/linux/perf_event.h
   CONFIG+=-DPERFH=\"$(PERF_EVENT_H)\"
 else
