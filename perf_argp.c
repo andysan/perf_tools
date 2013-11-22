@@ -31,6 +31,10 @@
 #include <stdint.h>
 #include <assert.h>
 
+#ifdef HAVE_LIBPFM4
+#include <perfmon/pfmlib_perf_event.h>
+#endif
+
 #include "expect.h"
 #include "perf_argp.h"
 
@@ -38,6 +42,7 @@ static const char prefix_sw_event[] = "sw:";
 static const char prefix_hw_event[] = "hw:";
 static const char prefix_hwc_event[] = "hwc:";
 static const char prefix_raw_event[] = "raw:";
+static const char prefix_pfm_event[] = "pfm:";
 
 typedef struct {
     const char *name;
@@ -302,6 +307,62 @@ init_raw_ctr(const char *arg, struct argp_state *state)
     init_ctr(PERF_TYPE_RAW, event);
 }
 
+#ifdef HAVE_LIBPFM4
+static int is_pfm_initialized = 0;
+
+static int
+is_pfm_event(const char *arg)
+{
+    return !strncmp(prefix_pfm_event, arg, sizeof(prefix_pfm_event) - 1);
+}
+
+static void
+init_pfm_ctr(const char *arg, struct argp_state *state)
+{
+    assert(is_pfm_event(arg));
+    int err;
+    const char *ctr_spec = arg + sizeof(prefix_pfm_event) - 1;
+    ctr_t *ctr = ctr_create(&perf_base_attr);
+    EXPECT(ctr != NULL);
+    if (perf_ctrs.head) {
+        /* These should only be set for the group leader */
+        ctr->attr.pinned = 0;
+        ctr->attr.exclusive = 0;
+    }
+    ctrs_add(&perf_ctrs, ctr);
+
+    if (!is_pfm_initialized) {
+        err = pfm_initialize();
+        if (err != PFM_SUCCESS) {
+            fprintf(stderr, "Failed to initialize libpfm: %s\n",
+                    pfm_strerror(err));
+            exit(1);
+        }
+    }
+
+    err = pfm_get_perf_event_encoding(ctr_spec, PFM_PLM3, &ctr->attr, NULL, NULL);
+    if (err != PFM_SUCCESS){
+        argp_error(state, "Invalid event specified: %s\n",
+                   pfm_strerror(err));
+    }
+}
+
+#else /* HAVE_LIBPFM4 */
+
+static int
+is_pfm_event(const char *arg)
+{
+    return 0;
+}
+
+static void
+init_pfm_ctr(const char *arg, struct argp_state *state)
+{
+    EXPECT(0);
+}
+
+#endif
+
 static void
 events_usage()
 {
@@ -329,6 +390,12 @@ events_usage()
     printf("Raw events:\n");
     printf("  Raw events are specified on the form 'raw:NUM' where NUM "
            "is the event number.\n");
+#ifdef HAVE_LIBPFM4
+    printf("\n");
+    printf("PFM4 events:\n");
+    printf("  Events can be specified using libpfm4 on the form 'pfm:EVENT' "
+           "where EVENT is pfm4 specific.\n");
+#endif
 
     exit(EXIT_SUCCESS);
 }
@@ -352,6 +419,8 @@ parse_opt(int key, char *arg, struct argp_state *state)
             init_hwc_ctr(arg, state);
         else if (is_raw_event(arg))
             init_raw_ctr(arg, state);
+        else if (is_pfm_event(arg))
+            init_pfm_ctr(arg, state);
         else
             argp_error(state,
                        "Invalid event specified, use 'help' to list "

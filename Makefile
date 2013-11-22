@@ -29,17 +29,29 @@ endif
 CFLAGS=-g -Wall -std=gnu99 $(CONFIG)
 
 
+ifneq ($(wildcard /usr/include/perfmon/pfmlib_perf_event.h),)
+CONFIG+=-DHAVE_LIBPFM4
+LIBS+=-lpfm
+else ifneq ($(wildcard /usr/local/include/perfmon/pfmlib_perf_event.h),)
+CONFIG+=-DHAVE_LIBPFM4
+LIBS+=-L/usr/local/lib -lpfm
+endif
+
 all: rawperf perfrecord perfdump perfgroup
 
 %.o: %.c util.h expect.h perf_common.h perf_file.h dumpers.h perf_argp.h
 
 rawperf: rawperf.o util.o perf_common.o perf_argp.o
+	$(CC) $^ $(LIBS) -o $@
 
 perfrecord: perfrecord.o util.o perf_file.o perf_common.o perf_argp.o
+	$(CC) $^ $(LIBS) -o $@
 
 perfdump: perfdump.o perf_file.o perf_common.o util.o dumper_csv.o dumper_dump.o
+	$(CC) $^ $(LIBS) -o $@
 
 perfgroup: perfgroup.o util.o perf_common.o perf_argp.o
+	$(CC) $^ $(LIBS) -o $@
 
 clean:
 	$(RM) *.o rawperf perfrecord perfdump

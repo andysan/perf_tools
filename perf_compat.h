@@ -34,10 +34,12 @@
 #include <unistd.h>
 #include <sys/syscall.h> 
 
-#ifndef PERFH
-#include <linux/perf_event.h>
-#else
+#if defined(HAVE_LIBPFM4)
+#include <perfmon/perf_event.h>
+#elif defined(PERFH)
 #include PERFH
+#else
+#include <linux/perf_event.h>
 #endif
 
 #ifndef __NR_perf_event_open
